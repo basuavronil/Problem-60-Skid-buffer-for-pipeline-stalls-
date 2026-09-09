@@ -68,6 +68,7 @@ module skid_buffer (
             else if (out_ready) 
                 begin
                 // No incoming data, but downstream consumer is reading main register
+                // since no tranfer is coming so skid_valid = 1'd0
                   main_valid <= 1'b0;
                 end
 
