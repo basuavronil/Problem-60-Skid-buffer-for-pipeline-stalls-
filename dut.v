@@ -38,46 +38,37 @@ module skid_buffer (
     // Synchronous Register Logic
     // ------------------------------------------------------------------------
     always @(posedge clk) begin
-        if (rst) 
-            begin
-              main_reg   <= 8'd0;
-              skid_reg   <= 8'd0;
-              main_valid <= 1'b0;
-              skid_valid <= 1'b0;
-            end 
-        else 
-            begin
+        if (rst) begin
+            main_reg   <= 8'd0;
+            skid_reg   <= 8'd0;
+            main_valid <= 1'b0;
+            skid_valid <= 1'b0;
+        end else begin
+
             // 1. Upstream Transfer Handling (Master -> Skid Buffer)
-              if (in_valid && in_ready) 
-                begin
-                    if (out_ready || !out_valid) 
-                    // slave is ready to receive data 
-                    // but both the skid buffer and the main buffer is empty
-                    begin
-                    // Slave is OPEN: Push directly into main register
-                      main_reg   <= in_data;
-                      main_valid <= 1'b1;
-                    end 
-                  else 
-                      begin
-                    // Slave is STALLED (out_ready == 0): Skid in-flight item into holding register
-                       skid_reg   <= in_data;
-                       skid_valid <= 1'b1;
-                      end
-                end 
-            else if (out_ready) 
-                begin
-                // No incoming data, but downstream consumer is reading main register
-                // since no tranfer is coming so skid_valid = 1'd0
-                  main_valid <= 1'b0;
+            if (in_valid && in_ready) begin
+                if (out_ready || !out_valid) begin
+                    // Slave is OPEN or buffer is EMPTY: Push directly into main register
+                    main_reg   <= in_data;
+                    main_valid <= 1'b1;
+                end else if (!out_ready && out_valid) begin
+                    // Slave is STALLED (out_ready == 0) AND main buffer is FULL (out_valid == 1):
+                    // Skid in-flight item into holding register
+                    skid_reg   <= in_data;
+                    skid_valid <= 1'b1;
                 end
+            end else if (out_ready && main_valid && !skid_valid) begin
+                // No incoming data, and downstream consumer reads main_reg directly.
+                // Clear main_valid so it does not send duplicate data.
+                main_valid <= 1'b0;
+            end
 
             // 2. Skid Holding Register Drain Handling
-            if (out_ready && skid_valid) 
-                begin
-                // Downstream resumed: Clear skid register flag after sending held data
-                  skid_valid <= 1'b0;
-                end
+            if (out_ready && skid_valid) begin
+                // Downstream resumed: Clear skid register flag after sending held data.
+                skid_valid <= 1'b0;
+            end
+
         end
     end
 
