@@ -47,19 +47,20 @@ module skid_buffer (
 
             // 1. Upstream Transfer Handling (Master -> Skid Buffer)
             if (in_valid && in_ready) begin
-                if (out_ready || !out_valid) begin
+                if (out_ready || !out_valid) begin // if either slave is accepting or the buffer is empty
                     // Slave is OPEN or buffer is EMPTY: Push directly into main register
                     main_reg   <= in_data;
                     main_valid <= 1'b1;
-                end else if (!out_ready && out_valid) begin
-                    // Slave is STALLED (out_ready == 0) AND main buffer is FULL (out_valid == 1):
-                    // Skid in-flight item into holding register
+                end else if (!out_ready && out_valid) begin // out_valid = 1: main_mem is full and receiver is not accepting
+                    /* we load incoming data in the skid ... the data in main stream remains as it is
+                    Slave is STALLED (out_ready == 0) AND main buffer is FULL (out_valid == 1):
+                    Skid in-flight item into holding register*/
                     skid_reg   <= in_data;
                     skid_valid <= 1'b1;
                 end
             end else if (out_ready && main_valid && !skid_valid) begin
-                // No incoming data, and downstream consumer reads main_reg directly.
-                // Clear main_valid so it does not send duplicate data.
+                /*No incoming data, and downstream consumer reads main_reg directly.
+                Clear main_valid so it does not send duplicate data*/
                 main_valid <= 1'b0;
             end
 
