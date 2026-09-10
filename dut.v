@@ -65,7 +65,7 @@ module skid_buffer (
             end
 
             // 2. Skid Holding Register Drain Handling
-            if (out_ready && skid_valid) begin
+            if (out_ready && skid_valid && ~main_valid) begin
                 // Downstream resumed: Clear skid register flag after sending held data.
                 skid_valid <= 1'b0;
             end
