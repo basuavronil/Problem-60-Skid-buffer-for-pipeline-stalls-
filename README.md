@@ -32,3 +32,25 @@ The module utilizes two internal data registers paired with corresponding single
 -- in_valid ------------------------------------------|-- out_valid
 <- in_ready (<-- !skid_valid) ------------------------|<- out_ready
 
+# Skid Buffer: Handshake Logic Analysis
+
+## Code Context
+
+Below is the upstream transaction handling logic inside the `skid_buffer` module:
+
+```verilog
+// ------------------------------------------------------------------------
+// 1. Upstream Transfer Handling (Master -> Skid Buffer)
+// ------------------------------------------------------------------------
+if (in_valid && in_ready) begin
+    if (out_ready || !out_valid) begin 
+        // Slave is OPEN or buffer is EMPTY: Push directly into main register
+        main_reg   <= in_data;
+        main_valid <= 1'b1;
+    end else if (!out_ready && out_valid) begin 
+        /* Slave is STALLED (out_ready == 0) AND main buffer is FULL (out_valid == 1):
+           Skid in-flight item into holding register */
+        skid_reg   <= in_data;
+        skid_valid <= 1'b1;
+    end
+end
