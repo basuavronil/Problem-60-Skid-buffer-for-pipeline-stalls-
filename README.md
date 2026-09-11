@@ -32,6 +32,9 @@ The module utilizes two internal data registers paired with corresponding single
 -- in_valid ------------------------------------------|-- out_valid
 <- in_ready (<-- !skid_valid) ------------------------|<- out_ready
 
+
+```
+---
 # Skid Buffer: Handshake Logic Analysis
 
 ## Code Context
