@@ -57,3 +57,11 @@ if (in_valid && in_ready) begin
         skid_valid <= 1'b1;
     end
 end
+```
+
+## Output
+### Waveform 
+<img width="932" height="246" alt="image" src="https://github.com/user-attachments/assets/174fe091-8145-4952-8865-759e365e25ce" />
+
+### Simulation Terminal
+<img width="410" height="152" alt="image" src="https://github.com/user-attachments/assets/7dfbdd26-1554-43e4-b32e-e995179d2e29" />
