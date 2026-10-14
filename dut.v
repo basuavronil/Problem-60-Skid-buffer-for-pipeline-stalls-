@@ -24,15 +24,18 @@ module skid_buffer (
     // ------------------------------------------------------------------------
     // Combinational Control & Datapath
     // ------------------------------------------------------------------------
-    
-    // Upstream ready: Accept data as long as the skid holding register is empty
+
+    // Upstream ready: deasserted while the skid register is full,
+    // reasserts once the skid is empty (registered -> one-cycle latency)
     assign in_ready  = !skid_valid;
 
-    // Downstream valid: Valid data exists if either register is occupied
+    // Downstream valid: skid_valid always implies main_valid, so this is
+    // the same as main_valid
     assign out_valid = main_valid || skid_valid;
 
-    // Datapath MUX: Drive skid_reg data first during stall drain; otherwise main_reg
-    assign out_data  = skid_valid ? skid_reg : main_reg;
+    // Datapath: main_reg ALWAYS drives the slave (it holds the OLDER beat).
+    // skid_reg never drives the output; it only refills main_reg.
+    assign out_data  = main_reg;
 
     // ------------------------------------------------------------------------
     // Synchronous Register Logic
@@ -45,28 +48,30 @@ module skid_buffer (
             skid_valid <= 1'b0;
         end else begin
 
-            // 1. Upstream Transfer Handling (Master -> Skid Buffer)
+            // 1. Upstream Transfer Handling (Master -> main / skid)
             if (in_valid && in_ready) begin
-                if (out_ready || !out_valid) begin // if either slave is accepting or the buffer is empty
-                    // Slave is OPEN or buffer is EMPTY: Push directly into main register
+                if (out_ready || !out_valid) begin
+                    // Slave is OPEN or buffer is EMPTY: push directly into main_reg
                     main_reg   <= in_data;
                     main_valid <= 1'b1;
-                end else if (!out_ready && out_valid) begin // out_valid = 1: main_mem is full and receiver is not accepting
-                    /* we load incoming data in the skid ... the data in main stream remains as it is
-                    Slave is STALLED (out_ready == 0) AND main buffer is FULL (out_valid == 1):
-                    Skid in-flight item into holding register*/
+                end else begin
+                    // STALL: main_reg holds beat A and the slave is not ready.
+                    // main_reg stays as it is; beat B is parked in skid_reg.
                     skid_reg   <= in_data;
                     skid_valid <= 1'b1;
                 end
             end else if (out_ready && main_valid && !skid_valid) begin
-                /*No incoming data, and downstream consumer reads main_reg directly.
-                Clear main_valid so it does not send duplicate data*/
+                // No incoming data and the slave took main_reg: clear it
+                // so the same beat is not sent twice
                 main_valid <= 1'b0;
             end
 
-            // 2. Skid Holding Register Drain Handling
-            if (out_ready && skid_valid && ~main_valid) begin
-                // Downstream resumed: Clear skid register flag after sending held data.
+            // 2. Skid Drain Handling
+            if (out_ready && main_valid && skid_valid) begin
+                // Slave asserted ready: beat A leaves main_reg this edge, and
+                // on the SAME edge beat B moves skid_reg -> main_reg.
+                // The skid becomes empty, so in_ready goes high again.
+                main_reg   <= skid_reg;
                 skid_valid <= 1'b0;
             end
 
