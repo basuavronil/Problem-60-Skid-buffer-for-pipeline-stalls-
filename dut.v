@@ -31,7 +31,7 @@ module skid_buffer (
 
     // Downstream valid: skid_valid always implies main_valid, so this is
     // the same as main_valid
-    assign out_valid = main_valid || skid_valid;
+    assign out_valid = main_valid;
 
     // Datapath: main_reg ALWAYS drives the slave (it holds the OLDER beat).
     // skid_reg never drives the output; it only refills main_reg.
