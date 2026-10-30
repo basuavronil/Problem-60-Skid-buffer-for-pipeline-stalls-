@@ -51,7 +51,8 @@ module skid_buffer (
             // 1. Upstream Transfer Handling (Master -> main / skid)
             if (in_valid && in_ready) begin
                 if (out_ready || !out_valid) begin
-                    // Slave is OPEN or buffer is EMPTY: push directly into main_reg
+                    // Slave is OPEN or main register is empty 
+                    // the out_valid always means main_valid as the data flows into the skid register once the main register cant hold data S
                     main_reg   <= in_data;
                     main_valid <= 1'b1;
                 end else begin
