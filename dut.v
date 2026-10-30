@@ -57,7 +57,7 @@ module skid_buffer (
                     // the out_valid always means main_valid as the data flows into the skid register once the main register cant hold data S
                     main_reg   <= in_data;
                     main_valid <= 1'b1;
-                end else (!out_ready && out_valid)
+                end else (!out_ready && out_valid) // Out_valid = Main_valid (main mem is full and slave is not accepting)
                     begin
                     // STALL: main_reg holds beat A and the slave is not ready.
                     // main_reg stays as it is; beat B is parked in skid_reg.
