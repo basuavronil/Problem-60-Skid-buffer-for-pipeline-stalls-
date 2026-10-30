@@ -31,6 +31,8 @@ module skid_buffer (
 
     // Downstream valid: skid_valid always implies main_valid, so this is
     // the same as main_valid
+    // data flows in the skid valid after maqin_valid opverflows so **Out valid == main_valid || skid_valid** is redundant 
+    // so skid valid = 1 is a subset of main_valid = 1. 
     assign out_valid = main_valid;
 
     // Datapath: main_reg ALWAYS drives the slave (it holds the OLDER beat).
