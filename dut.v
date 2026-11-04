@@ -13,7 +13,7 @@ module skid_buffer (
     input  wire       out_ready  
 );
 
-    // Internal Data Registers
+    // Internal Data Registers 
     reg [7:0] main_reg;
     reg [7:0] skid_reg;
 
