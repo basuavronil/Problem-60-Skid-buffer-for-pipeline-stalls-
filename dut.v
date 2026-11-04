@@ -8,7 +8,7 @@ module skid_buffer (
     output wire       in_ready, 
     
     // Downstream Interface (Slave Side)
-    output wire [7:0] out_data,
+    output wire [7:0] out_data,  
     output wire       out_valid,
     input  wire       out_ready
 );
