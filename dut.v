@@ -1,4 +1,4 @@
-module skid_buffer (
+module skid_buffer (   
     input  wire       clk,    
     input  wire       rst,
   
