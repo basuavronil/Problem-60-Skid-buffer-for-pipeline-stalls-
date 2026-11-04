@@ -10,7 +10,7 @@ module skid_buffer (
     // Downstream Interface (Slave Side)
     output wire [7:0] out_data,  
     output wire       out_valid,
-    input  wire       out_ready
+    input  wire       out_ready  
 );
 
     // Internal Data Registers
