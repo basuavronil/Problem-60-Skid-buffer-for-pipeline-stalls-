@@ -34,7 +34,7 @@ module skid_buffer (
                 if (out_ready || !out_valid) begin
                     main_reg   <= in_data;
                     main_valid <= 1'b1;
-                end else (!out_ready && out_valid) 
+                end else if (!out_ready && out_valid) 
                     begin
                     skid_reg   <= in_data;
                     skid_valid <= 1'b1;
