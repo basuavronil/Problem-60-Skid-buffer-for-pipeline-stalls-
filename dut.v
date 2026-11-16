@@ -1,7 +1,7 @@
 module skid_buffer (   
     input clk, rst,     
     
-    // Upstream Interface (Master Side)           
+    // Upstream Interface (Master Side)             
     input  wire [7:0] in_data,    
     input in_valid,    
     output in_ready,     
