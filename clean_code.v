@@ -48,8 +48,6 @@ module skid_buffer (
                 main_reg   <= skid_reg;
                 skid_valid <= 1'b0;
             end
-
         end
     end
-
 endmodule
