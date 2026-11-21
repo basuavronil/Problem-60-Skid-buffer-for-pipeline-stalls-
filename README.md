@@ -15,7 +15,7 @@
 Why is a combinational `ready` signal a bottleneck?
 
 ## Explanation
-A combinational `ready` signal passes directly through logic gates and wires without waiting for a clock edge, which means if `ready` travels backward across multiple pipeline stages or drives many upstream blocks at once, all of those gate and wire delays stack up inside a single clock cycle. In hardware timing, everything inside one clock cycle must finish before the next rising edge arrives, so a long or high-fan-out combinational `ready` path easily becomes the slowest path in the design, limiting how fast your clock can run and making timing closure much harder.
+A combinational ready signal can chain delays across multiple stages inside a single clock cycle, easily creating a slow timing path that caps your clock frequency.
 
 <img width="638" height="278" alt="image" src="https://github.com/user-attachments/assets/7f2b4256-5c72-48f8-975d-c87eea4a1a15" />
 
