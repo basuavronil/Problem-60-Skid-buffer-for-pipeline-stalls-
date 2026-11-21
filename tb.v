@@ -5,7 +5,7 @@ module tb_skid_buffer;
     reg        rst;
     // Upstream Interface (Master Side)
     reg  [7:0] in_data;
-    reg        in_valid;
+    reg        in_valid;  
     wire       in_ready;
     // Downstream Interface (Slave Side)
     wire [7:0] out_data;
