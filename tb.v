@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module tb_skid_buffer;
-    reg        clk;
+    reg        clk;  
     reg        rst;
     // Upstream Interface (Master Side)
     reg  [7:0] in_data;
