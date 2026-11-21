@@ -11,7 +11,7 @@ module tb_skid_buffer;
     wire [7:0] out_data;
     wire       out_valid;
     reg        out_ready;
-
+  
     // Instantiate DUT
     skid_buffer dut (
         .clk       (clk),
