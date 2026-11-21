@@ -63,3 +63,29 @@ A standard **1-deep registered FIFO** adds **1 cycle of latency** on every trans
 endmodule
 
 ```
+### Skid Buffer vs. Depth-2 FIFO
+You *can* use a 2-deep FIFO in some designs, and sometimes people do—but a skid buffer is usually preferred at timing-critical `valid`/`ready` boundaries because a standard 2-deep FIFO has a few trade-offs in **latency, control complexity, and area/timing**.
+
+#### 1. Extra Latency & Bubble Cycles
+* **Standard 2-deep FIFO:** Typically registers writes on one clock edge and presents read data either on the next cycle (registered output) or combinationally from the read pointer/mux. If you want registered outputs and clean empty/full flags without combinational `ready` loops, transitions between empty, 1-entry, and 2-entry states can easily introduce 1-cycle latency or stall bubbles when switching between pass-through and buffered operation.
+* **Skid buffer:** Keeps a simple **1-beat bypass/main path** plus **1 skid register**, specifically tuned so normal flow has zero extra staging delay while a 1-cycle registered `ready` lag is absorbed cleanly.
+
+#### 2. More State & Pointer / Flag Logic Than Needed
+* **2-deep FIFO:** Needs read/write pointers (or a 2-bit shift/occupancy tracker), empty/full/almost-full decode logic, and careful handling of simultaneous push + pop when full (`count == 2`).
+* **Skid buffer:** Only needs to distinguish **normal flow** vs. **1 skidded beat waiting (`skid_valid`)**, which keeps the control state minimal and easier to verify for timing and handshake corner cases.
+
+#### 3. Area & Muxing Cost on Wide Buses
+* A 2-deep FIFO stores **two full data words** (plus pointer/control logic), whereas a skid buffer also uses **two data registers** (`main_reg` and `skid_reg`)—so on data width alone they are similar—but the FIFO's extra pointer/status decode logic adds overhead if you only ever needed to absorb **1 cycle of registered `ready` latency**.
+
+#### When a 2-Deep FIFO *Does* Make Sense
+* When you want **elastic buffering across bursts** or multiple cycles of rate mismatch—not just absorbing a 1-cycle registered `ready` delay—or when your design already standardizes on a reusable FIFO macro.
+
+---
+
+### Can a 2-Deep FIFO Solve the 1-Clock-Cycle Latency Issue?
+It **can**—if you wire it as a **fall-through / bypass (FWFT) FIFO** where an empty FIFO forwards `data_in` combinationally to `data_out` on the same cycle. The catch is that combinational bypass creates a **combinational path from `in_data` to `out_data`**, which can hurt timing at high clock frequencies and still requires care not to create a combinational loop between `ready` and `valid`.
+
+* **Registered output = 1 cycle of latency:** If the FIFO's output is registered (`out_data` comes from a flip-flop), writing on `posedge clk` means the data takes at least 1 clock edge to appear at `out_data`—regardless of whether the FIFO is 1-deep or 2-deep.
+* **Combinational bypass = 0-cycle latency, higher timing risk:** A 2-deep fall-through FIFO *can* achieve 0-cycle latency when empty by muxing `in_data` straight to `out_data`, just like a skid buffer's bypass path—but you lose the clean separation of a dedicated `main_reg` + `skid_reg` designed specifically for registered `ready` backpressure.
+
+---
