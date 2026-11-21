@@ -18,7 +18,7 @@ module skid_buffer (
     reg       main_valid, skid_valid;
 
     // Can take new input if skid_reg is empty or is being drained this cycle
-    assign in_ready  = !skid_valid || (out_valid && out_ready);
+    assign in_ready = !skid_valid;
     assign out_valid = main_valid;
     assign out_data  = main_reg;
 
@@ -31,20 +31,22 @@ module skid_buffer (
         end else begin
             // 1. Downstream takes current output beat
             if (out_valid && out_ready) begin
-                if (skid_valid) begin
-                    // Drain skid_reg into main_reg; take new in_data if accepted
-                    main_reg   <= (in_valid && in_ready) ? in_data : skid_reg;
-                    main_valid <= 1'b1;
-                    skid_valid <= 1'b0;
-                end else if (in_valid && in_ready) begin
-                    // Skid empty, new beat accepted directly into main_reg
-                    main_reg   <= in_data;
-                    main_valid <= 1'b1;
-                end else begin
-                    // Nothing left to drive out
-                    main_valid <= 1'b0;
-                end
-            end
+              if (skid_valid) begin
+                 // Drain the older skid_reg beat into main_reg first; keep order intact
+                main_reg   <= skid_reg;
+                main_valid <= 1'b1;
+                skid_valid <= 1'b0;
+                end 
+              else if (in_valid && in_ready) begin
+                 // Skid is empty and old main_reg beat is consumed: load new beat directly
+                 main_reg   <= in_data;
+                 main_valid <= 1'b1;
+               end 
+              else begin
+                 main_valid <= 1'b0;
+              end
+           end
+
             // 2. Downstream is NOT taking current output beat
             else if (in_valid && in_ready) begin
                 if (!main_valid) begin
