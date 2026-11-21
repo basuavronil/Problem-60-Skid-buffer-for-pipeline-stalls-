@@ -20,3 +20,5 @@ A combinational `ready` signal passes directly through logic gates and wires wit
 <img width="638" height="278" alt="image" src="https://github.com/user-attachments/assets/7f2b4256-5c72-48f8-975d-c87eea4a1a15" />
 
 <img width="799" height="283" alt="image" src="https://github.com/user-attachments/assets/ef25984c-fcca-4d28-9daf-cfadf3233a41" />
+
+<img width="653" height="326" alt="image" src="https://github.com/user-attachments/assets/6c9a5402-769a-4601-8cdc-df73698f2732" />
