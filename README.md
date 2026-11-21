@@ -57,12 +57,9 @@ A standard **1-deep registered FIFO** adds **1 cycle of latency** on every trans
   * **Depth-1 FIFO:** Once that 1 slot is occupied and not being read, `full` is asserted (`ready = 0`). If `ready` is registered (to avoid a long combinational timing path), `ready` only drops on the *next* cycle—meaning an in-flight beat arriving during that 1-cycle delay has nowhere to go if the single slot is already holding an unconsumed word.
   * **Skid buffer:** Designed specifically around **registered `ready`** (breaking long backward timing paths). It keeps `main_reg` for the active/current beat and uses `skid_reg` as a dedicated parking slot for the **one extra beat** that arrives while `ready` is transitioning from `1` to `0`, preserving strict in-order delivery without dropping data or creating combinational backpressure loops.
 
----
 
 
-endmodule
 
-```
 ### Skid Buffer vs. Depth-2 FIFO
 You *can* use a 2-deep FIFO in some designs, and sometimes people do—but a skid buffer is usually preferred at timing-critical `valid`/`ready` boundaries because a standard 2-deep FIFO has a few trade-offs in **latency, control complexity, and area/timing**.
 
