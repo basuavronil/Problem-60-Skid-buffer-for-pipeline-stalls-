@@ -1,39 +1,36 @@
-
-
-## 2. Combinational Timing Risks: Setup vs. Hold Violations
-
-When talking about combinational paths risking timing, **it is usually a setup (max-delay) violation**, not a hold violation—though a fast path *can* cause a hold violation in specific situations.
-
-### 1. Why Combinational Paths Normally Hurt *Setup* Timing
-* **Setup timing** checks that a signal launched on one clock edge arrives at the next flip-flop **before** the next clock edge:
-  $$T_{\text{arrival}} \le T_{\text{clk}} - T_{\text{setup}}$$
-* Long combinational logic (or long chains of `ready`/`valid` or bypass muxes across stages) increases **propagation delay**, making the signal arrive *late* and causing a **setup violation** (limiting your maximum clock frequency).
-
-### 2. When a Fast Path Causes a *Hold* Violation
-* **Hold timing** checks that a signal stays stable **after** the active clock edge so the receiving flip-flop doesn't capture the *new* value instead of the *previous* one:
-  $$T_{\text{data\_change}} \ge T_{\text{hold}} + T_{\text{skew}}$$
-* If a signal launches on `posedge clk` and travels through a very short, fast combinational path (or has clock skew where the launch clock is late relative to the capture clock), it can reach the next flip-flop **too soon** after the clock edge and overwrite the previous data—that is a **hold violation**.
-* An "empty" wire itself doesn't make a signal go faster than physics allows; a path only fails hold when its delay is **too small** relative to clock skew and flip-flop hold time (which EDA tools fix by inserting delay/buffer cells, not by making logic slower on purpose).
-
-### How This Connects to Skid Buffers
-* Registering `ready` or isolating stages with flip-flops breaks long combinational chains across module boundaries so **setup slack** doesn't degrade at high frequencies.
-* Once synthesized and placed, Static Timing Analysis (STA) checks **both** setup (max delay) and hold (min delay) on every path—including bypass muxes and handshake signals.
-
-
 # Forward Register Slice vs. Skid Buffer
 
-## 1. Key Differences
+## 1. What is a Forward Register Slice?
+
+A **forward register slice** (often called a **forward pipeline stage** or **data/valid register slice**) is a single-stage pipeline buffer placed on a `valid`/`ready`/`data` handshake interface whose **forward path (`valid` and `data`) is registered on the clock edge**, while its **backward path (`ready`) is driven combinationally**.
+
+### How It Works
+* **Forward path (`out_data`, `out_valid`):** Captures `in_data` and `in_valid` on `posedge clk` whenever the stage can accept a beat (`in_ready`). This breaks long combinational `data` and `valid` paths between pipeline stages or blocks.
+* **Backward path (`in_ready`):** Driven combinationally by `!out_valid || out_ready`. If the output register is empty (`!out_valid`) or downstream is consuming the current beat right now (`out_ready`), `in_ready` is `1` in that very same cycle.
+
+### Why It's Called "Forward"
+Unlike a **reverse register slice** (which registers `ready` backward and leaves `valid`/`data` combinational) or a **full skid buffer** (which registers `ready` backward *and* adds a `skid_reg` so `valid`/`data` stay registered with full throughput), a forward register slice puts its flip-flops in the **forward (`valid`/`data`) direction**.
+
+### Key Pros & Cons
+* **Pros:** Uses only one register stage (`out_data` + `out_valid`), breaks combinational `data`/`valid` paths, and gives immediate same-cycle `in_ready` updates without extra skid storage.
+* **Cons:** Because `in_ready` combinationally depends on `out_ready`, downstream backpressure logic can still form a long combinational path into the upstream master at high clock frequencies.
+
+---
+
+## 2. Key Differences: Forward Slice vs. Skid Buffer
 
 | Feature | Forward Register Slice (Without Skid Buffer) | Skid Buffer (With Skid Buffer) | 
-| ----- | ----- | ----- | 
-| **`in_ready` Path** | **Combinational** (`!out_valid || out_ready`) — reacts immediately in the same cycle | **Sequential / Registered** (`!skid_valid`) — updates only after `posedge clk` | 
+| :--- | :--- | :--- | 
+| **`in_ready` Path** | **Combinational** (`!out_valid \|\| out_ready`) — reacts immediately in the same cycle | **Sequential / Registered** (`!skid_valid`) — updates only after `posedge clk` | 
 | **Backpressure Timing** | Extends downstream `out_ready` logic into upstream logic, increasing **setup timing** risk | Isolates backpressure at a flip-flop boundary to break long combinational paths | 
 | **Role of `out_ready`** | Directly gates `in_ready` combinationally and controls register load | Excluded from `in_ready`; used inside `always @(posedge clk)` for drain/stall register updates | 
 | **Data Storage** | 1 data register (`out_data`) + 1 valid register (`out_valid`) | 2 data registers (`main_reg`, `skid_reg`) + 2 valid registers (`main_valid`, `skid_valid`) | 
 | **In-Flight Beat Handling** | Relies on immediate combinational `in_ready` drop so no extra beat is pushed while stalled | Parks 1 in-flight beat in `skid_reg` during the 1-cycle registered `ready` reaction window | 
 | **Throughput** | 1 beat/cycle when unblocked (subject to combinational `out_ready` delay) | 1 beat/cycle with zero bubble cycles on drain/load transitions | 
 
-## 2. Combinational vs. Sequential `in_ready` (Why `assign` Alone Doesn't Decide)
+---
+
+## 3. Combinational vs. Sequential `in_ready` (Why `assign` Alone Doesn't Decide)
 
 A continuous `assign` statement simply drives a `wire`—it does not by itself make a signal combinational or sequential. What determines whether `in_ready` is **combinational** or **sequential (registered)** is what sits on the right-hand side (`RHS`) of that `assign`:
 
@@ -43,11 +40,13 @@ A continuous `assign` statement simply drives a `wire`—it does not by itself m
 * **Sequential / Registered `in_ready` (`assign in_ready = !skid_valid;`):**
   Here `skid_valid` is the direct **Q output of a flip-flop** (`always @(posedge clk)`). The `assign` just routes that flop's Q output to the `in_ready` wire—there is no `out_ready` logic in the path, and `in_ready` only changes **after `posedge clk`** when `skid_valid` updates.
 
-## 3. Verilog Implementations
+---
+
+## 4. Verilog Implementations
 
 ### Forward Register Slice (Combinational `in_ready`)
 
-```
+```verilog
 module forward_register_slice (
     input  wire       clk,
     input  wire       rst,
@@ -77,12 +76,11 @@ module forward_register_slice (
     end
 
 endmodule
-
 ```
 
 ### Skid Buffer (Sequential / Registered `in_ready` + `skid_reg`)
 
-```
+```verilog
 module skid_buffer (
     input  wire       clk,
     input  wire       rst,
@@ -144,3 +142,6 @@ module skid_buffer (
             end
         end
     end
+
+endmodule
+```
