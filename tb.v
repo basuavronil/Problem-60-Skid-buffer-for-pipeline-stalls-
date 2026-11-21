@@ -15,7 +15,7 @@ module tb_skid_buffer;
     // Instantiate DUT
     skid_buffer dut (
         .clk       (clk),
-        .rst       (rst),
+        .rst       (rst),  
         .in_data   (in_data),
         .in_valid  (in_valid),
         .in_ready  (in_ready),
