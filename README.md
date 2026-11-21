@@ -28,3 +28,14 @@ A combinational ready signal can chain delays across multiple stages inside a si
 <img width="802" height="388" alt="image" src="https://github.com/user-attachments/assets/38dec5c7-6062-4482-a117-bcb2cd455250" />
 
 <img width="783" height="304" alt="image" src="https://github.com/user-attachments/assets/dcf6f977-0ba0-44e3-83b9-8c8b6a382ec7" />
+
+# Pipelining the `ready` Signal & Skid Buffer Placement
+
+## 1. Why We Pipeline `ready` (Making It Sequential)
+* **The Problem (Long Combinational `ready`):** In a basic valid-ready pipeline, `ready` propagates backward combinationally across multiple stages inside a single clock cycle, accumulating large cell and wire delays that create a critical timing bottleneck.
+* **The Fix (Sequential `ready`):** By inserting a flip-flop (`FF`) on the `ready` path, we pipeline `ready` and convert it into a sequential signal. This breaks the long combinational chain into shorter, clock-bounded segments, eliminating accumulated cell delays and improving maximum clock frequency ($F_{\max}$).
+
+## 2. How the `ready` Flip-Flop and Skid Buffer Are Positioned
+* **Same Boundary, Opposite Paths:** Both sit at the **exact same interface boundary** between the upstream **Master** (Sender) and downstream **Slave** (Receiver), operating on two opposite signal paths:
+  * **Backward Path (`Slave → Master`):** The registered **`ready` flip-flop** sits on the backward control path, delaying the backpressure signal by 1 clock cycle to break timing.
+  * **Forward Path (`Master → Slave`):** The **Skid Buffer** (extra data/valid holding register) sits on the forward datapath, safely capturing any in-flight `data` and `valid` beat that arrives during that 1-cycle `ready` delay so nothing is overwritten or lost.
