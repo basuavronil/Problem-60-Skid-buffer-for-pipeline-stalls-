@@ -17,7 +17,8 @@ module skid_buffer (
     reg [7:0] main_reg, skid_reg;
     reg       main_valid, skid_valid;
 
-    assign in_ready  = !skid_valid;
+    // Can take new input if skid_reg is empty or is being drained this cycle
+    assign in_ready  = !skid_valid || (out_valid && out_ready);
     assign out_valid = main_valid;
     assign out_data  = main_reg;
 
@@ -28,25 +29,33 @@ module skid_buffer (
             main_valid <= 1'b0;
             skid_valid <= 1'b0;
         end else begin
-
-            // 1. Upstream Transfer Handling (Master -> main / skid)
-            if (in_valid && in_ready) begin
-                if (out_ready || !out_valid) begin
+            // 1. Downstream takes current output beat
+            if (out_valid && out_ready) begin
+                if (skid_valid) begin
+                    // Drain skid_reg into main_reg; take new in_data if accepted
+                    main_reg   <= (in_valid && in_ready) ? in_data : skid_reg;
+                    main_valid <= 1'b1;
+                    skid_valid <= 1'b0;
+                end else if (in_valid && in_ready) begin
+                    // Skid empty, new beat accepted directly into main_reg
                     main_reg   <= in_data;
                     main_valid <= 1'b1;
-                end else if (!out_ready && out_valid) 
-                    begin
+                end else begin
+                    // Nothing left to drive out
+                    main_valid <= 1'b0;
+                end
+            end
+            // 2. Downstream is NOT taking current output beat
+            else if (in_valid && in_ready) begin
+                if (!main_valid) begin
+                    // main_reg was empty, load directly
+                    main_reg   <= in_data;
+                    main_valid <= 1'b1;
+                end else if (!skid_valid) begin
+                    // main_reg is busy holding older data, park new beat in skid_reg
                     skid_reg   <= in_data;
                     skid_valid <= 1'b1;
-                    end
-            end else if (out_ready && main_valid && !skid_valid) begin
-                main_valid <= 1'b0;
-            end
-
-            // 2. Skid Drain Handling
-          if (out_ready && main_valid && skid_valid) begin
-                main_reg   <= skid_reg;
-                skid_valid <= 1'b0;
+                end
             end
         end
     end
